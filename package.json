@@ -4,6 +4,10 @@
   "description": "A simple package to test OIDC publishing with changesets",
   "license": "ISC",
   "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zibs/changeset-oidc.git"
+  },
   "type": "commonjs",
   "main": "index.js",
   "files": [
