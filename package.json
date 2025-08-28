@@ -1,6 +1,6 @@
 {
   "name": "changeetester",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A simple package to test OIDC publishing with changesets",
   "license": "ISC",
   "author": "",
