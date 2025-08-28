@@ -17,57 +17,10 @@ jobs:
       packages: write
       pull-requests: write
 
-    # Expose both the Changesets signal and our "release commit" check
-    outputs:
-      hasChangesets: ${{ steps.changesets.outputs.hasChangesets }}
-      release_commit: ${{ steps.detect.outputs.release_commit }}
-
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: ./.github/actions/setup
-
-      - name: Build
-        run: npm run build
-
-      # PR-only: do NOT let changesets publish here (prevents token-based .npmrc)
-      - name: PR or Version (no publish)
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: npm run version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Extra guard: detect if the HEAD commit looks like a release commit
-      # (i.e., versions/changelogs updated by the merged Version PR from changesets)
-      - name: Detect release commit
-        id: detect
-        shell: bash
-        run: |
-          # Check if the commit message indicates it's a changesets version commit
-          commit_msg=$(git log -1 --pretty=format:"%s")
-          if [[ "$commit_msg" =~ ^Version\ Packages || "$commit_msg" =~ RELEASING: ]]; then
-            echo "release_commit=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "release_commit=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  publish:
-    needs: release
-    # Publish only when:
-    #  - Changesets says there are NO pending changesets (== 'false')
-    #  - The HEAD commit appears to be a release commit (== 'true')
-    if: needs.release.outputs.hasChangesets == 'false' && needs.release.outputs.release_commit == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write # REQUIRED for npm OIDC Trusted Publishing
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup
 
@@ -78,9 +31,14 @@ jobs:
       # Make sure we're pointed at the public npm registry (no .npmrc auth here)
       - run: npm config set registry https://registry.npmjs.org
 
-      # Build again on the release commit if your publish step needs artifacts
-      - run: npm run build
+      - name: Build
+        run: npm run build
 
-      # No NPM_TOKEN. This calls `npm publish` under the hood and npm uses OIDC.
-      - name: Publish via OIDC
-        run: npm run release
+      - name: PR or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: npm run version
+          publish: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
