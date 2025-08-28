@@ -42,13 +42,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Extra guard: detect if the HEAD commit looks like a release commit
-      # (i.e., versions/changelogs updated by the merged Version PR)
+      # (i.e., versions/changelogs updated by the merged Version PR from changesets)
       - name: Detect release commit
         id: detect
         shell: bash
         run: |
-          if git show --name-only --pretty="" HEAD \
-            | grep -E '(^|/)package\.json$|(^|/)CHANGELOG\.md$'; then
+          # Check if the commit message indicates it's a changesets version commit
+          commit_msg=$(git log -1 --pretty=format:"%s")
+          if [[ "$commit_msg" =~ ^Version\ Packages || "$commit_msg" =~ RELEASING: ]]; then
             echo "release_commit=true" >> "$GITHUB_OUTPUT"
           else
             echo "release_commit=false" >> "$GITHUB_OUTPUT"
